@@ -22,7 +22,7 @@ const Index = () => {
   const [emotions, setEmotions] = useState<Emotion[]>([]);
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
-  const [keys, setKeys] = useState({ w: false, a: false, s: false, d: false });
+  const [targetPos, setTargetPos] = useState({ x: 50, y: 50 });
 
   const generateEmotions = useCallback(() => {
     const newEmotions: Emotion[] = [];
@@ -50,62 +50,37 @@ const Index = () => {
     startGame();
   };
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const key = e.key.toLowerCase();
-      if (['w', 'a', 's', 'd', 'arrowup', 'arrowleft', 'arrowdown', 'arrowright'].includes(key)) {
-        e.preventDefault();
-        setKeys((prev) => {
-          const newKeys = { ...prev };
-          if (key === 'w' || key === 'arrowup') newKeys.w = true;
-          if (key === 'a' || key === 'arrowleft') newKeys.a = true;
-          if (key === 's' || key === 'arrowdown') newKeys.s = true;
-          if (key === 'd' || key === 'arrowright') newKeys.d = true;
-          return newKeys;
-        });
-      }
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      const key = e.key.toLowerCase();
-      setKeys((prev) => {
-        const newKeys = { ...prev };
-        if (key === 'w' || key === 'arrowup') newKeys.w = false;
-        if (key === 'a' || key === 'arrowleft') newKeys.a = false;
-        if (key === 's' || key === 'arrowdown') newKeys.s = false;
-        if (key === 'd' || key === 'arrowright') newKeys.d = false;
-        return newKeys;
-      });
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-  }, []);
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (gameState !== 'playing') return;
+    
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    
+    setTargetPos({ x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) });
+  }, [gameState]);
 
   useEffect(() => {
     if (gameState !== 'playing') return;
 
     const moveInterval = setInterval(() => {
       setPlayerPos((prev) => {
-        let newX = prev.x;
-        let newY = prev.y;
+        const dx = targetPos.x - prev.x;
+        const dy = targetPos.y - prev.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (keys.a) newX = Math.max(0, prev.x - 1);
-        if (keys.d) newX = Math.min(95, prev.x + 1);
-        if (keys.w) newY = Math.max(0, prev.y - 1);
-        if (keys.s) newY = Math.min(95, prev.y + 1);
+        if (distance < 0.5) return prev;
+
+        const speed = 0.8;
+        const newX = prev.x + (dx / distance) * speed;
+        const newY = prev.y + (dy / distance) * speed;
 
         return { x: newX, y: newY };
       });
     }, 20);
 
     return () => clearInterval(moveInterval);
-  }, [keys, gameState]);
+  }, [targetPos, gameState]);
 
   useEffect(() => {
     if (gameState !== 'playing') return;
@@ -155,7 +130,7 @@ const Index = () => {
             Собери Эмоции
           </h1>
           <p className="text-xl text-muted-foreground mb-8">
-            Управляй персонажем стрелками или WASD и собирай все эмоции на поле за {GAME_DURATION} секунд!
+            Двигай мышкой по полю и собирай все эмоции за {GAME_DURATION} секунд!
           </p>
           <Button
             onClick={startGame}
@@ -229,7 +204,11 @@ const Index = () => {
         </div>
 
         <Card className="p-2 shadow-2xl">
-          <div className="relative w-full bg-muted rounded-xl overflow-hidden" style={{ paddingBottom: '75%' }}>
+          <div 
+            className="relative w-full bg-muted rounded-xl overflow-hidden cursor-none" 
+            style={{ paddingBottom: '75%' }}
+            onMouseMove={handleMouseMove}
+          >
             <div className="absolute inset-0">
               <div
                 className="absolute w-12 h-12 bg-primary rounded-full shadow-lg flex items-center justify-center text-2xl transition-all duration-75 ease-linear animate-pulse-soft"
@@ -261,7 +240,7 @@ const Index = () => {
         </Card>
 
         <p className="text-center mt-6 text-muted-foreground text-lg">
-          Управление: стрелки ← ↑ ↓ → или W A S D
+          Управление: двигай мышкой по игровому полю
         </p>
       </div>
     </div>
