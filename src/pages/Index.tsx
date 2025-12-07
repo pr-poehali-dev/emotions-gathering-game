@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 
 type Emotion = {
   id: number;
@@ -220,7 +219,12 @@ const Index = () => {
           </Card>
           <Card className="p-4 flex-1 min-w-[200px]">
             <p className="text-sm text-muted-foreground mb-1">Прогресс</p>
-            <Progress value={progress} className="h-3 mt-2" />
+            <div className="h-3 w-full bg-secondary rounded-full overflow-hidden mt-2">
+              <div 
+                className="h-full bg-primary transition-all duration-300"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
           </Card>
         </div>
 
